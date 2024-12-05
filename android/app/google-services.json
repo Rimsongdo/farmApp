@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "126983021915",
+    "project_id": "myfarm-a3bec",
+    "storage_bucket": "myfarm-a3bec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:126983021915:android:8abb4d7cf9ea7b1436a67e",
+        "android_client_info": {
+          "package_name": "com.example.tryapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwfSiW3cTSlceB6x-iPRNgrr38D7FhnC4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
