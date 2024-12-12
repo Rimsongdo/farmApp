@@ -6,6 +6,7 @@ import 'package:tryapp/loading.dart';
 import 'package:tryapp/login.dart';
 import 'package:tryapp/home.dart';
 
+
 // Configuration des notifications locales
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -75,7 +76,9 @@ class MyApp extends StatelessWidget {
       home: const LoadingPage(),
       routes: {
         '/login': (context) => LoginPage(),
-        '/home': (context) => const HomePage(),
+        '/home': (context) => const MainPage(),
+        
+        //'/notifications': (context) => const HomePage(),
       },
     );
   }

@@ -4,6 +4,62 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
+import 'package:tryapp/notification.dart';
+
+class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
+  @override
+  _MainPageState createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  int _currentIndex = 0;
+
+  // Liste des pages
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomePage(), // Page d'accueil
+      const SettingsScreen(), // Page Paramètres
+       NotificationWidget(), // Page Notifications
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_currentIndex], // Affiche la page selon l'index
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index; // Mise à jour de l'onglet sélectionné
+          });
+        },
+        selectedItemColor: const Color(0xFF3C6E47),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Paramètres',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Notifications',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -20,6 +76,10 @@ class _HomePageState extends State<HomePage> {
   String userId = "";
   late Timer _timer;
 
+  
+
+
+  
   // Load user data from SharedPreferences
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -35,7 +95,7 @@ class _HomePageState extends State<HomePage> {
       fetchData(thingSpeakChannelId, thingSpeakApiKey, userId);
 
       // Start fetching data every 30 seconds
-      _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+      _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
         fetchData(thingSpeakChannelId, thingSpeakApiKey, userId);
       });
     }
@@ -88,6 +148,7 @@ class _HomePageState extends State<HomePage> {
         humidityAir = ['Erreur'];
         humiditySoil = ['Erreur'];
         npk = ['Erreur'];
+        
       });
     }
   }
@@ -115,7 +176,12 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(userName.isNotEmpty ? userName : 'User', style: TextStyle(fontSize: 20)),
+        title: IconButton(
+    icon: const Icon(Icons.account_circle), // Icône du profil
+    onPressed: () {
+      // Ajoutez la logique pour naviguer vers la page de profil ou autre action ici
+    },
+  ),
         backgroundColor: const Color.fromARGB(255, 218, 242, 223),
         actions: [
           IconButton(
@@ -124,10 +190,36 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(  // Make the body scrollable
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            const SizedBox(height: 15),
+            const Text(
+              'Prochaine Irrigation',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color.fromARGB(255, 51, 135, 69),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,  // Make the container responsive
+              height: 80,
+              child: const Card(
+                elevation: 15,
+                color: Color.fromARGB(255, 223, 239, 245),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Text('Prévue pour: ', style: TextStyle(fontSize: 20)),
+                    Text("7h00", style: TextStyle(fontSize: 20)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
             const Text(
               'Données en temps réel',
               style: TextStyle(
@@ -137,87 +229,51 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                children: [
-                  _buildCard(
-                    title: 'Température',
-                    value: temperatures.isNotEmpty ? '${temperatures.last}°C' : '0°C',
-                    iconPath: 'assets/img/temp.png',
-                    color: getAdjustedColor(
-                      const Color.fromARGB(255, 250, 215, 169),
-                      temperatures.isNotEmpty ? double.tryParse(temperatures.last) ?? 0 : 0,
-                      0,
-                      50,
+            // Adjust GridView layout based on screen size
+            Builder(
+              builder: (context) {
+                double width = MediaQuery.of(context).size.width;
+                int crossAxisCount = width > 600 ? 4 : 2; // More columns for larger screens
+                return GridView.count(
+                  shrinkWrap: true, // Makes GridView responsive
+                  physics: NeverScrollableScrollPhysics(), // Prevents nested scrolling
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  children: [
+                    _buildCard(
+                      title: 'Température',
+                      value: temperatures.isNotEmpty ? '${temperatures.last}°C' : '0°C',
+                      iconPath: 'assets/img/temp.png',
+                      color: const Color.fromARGB(255, 250, 215, 169),
                     ),
-                  ),
-                  _buildCard(
-                    title: 'Humidité Air',
-                    value: humidityAir.isNotEmpty ? '${humidityAir.last}%' : '0%',
-                    iconPath: 'assets/img/humidite.png',
-                    color: getAdjustedColor(
-                      const Color.fromARGB(255, 165, 194, 245),
-                      humidityAir.isNotEmpty ? double.tryParse(humidityAir.last) ?? 0 : 0,
-                      0,
-                      100,
+                    _buildCard(
+                      title: 'Humidité Air',
+                      value: humidityAir.isNotEmpty ? '${humidityAir.last}%' : '0%',
+                      iconPath: 'assets/img/humidite.png',
+                      color: const Color.fromARGB(255, 165, 194, 245),
                     ),
-                  ),
-                  _buildCard(
-                    title: 'Humidité Sol',
-                    value: humiditySoil.isNotEmpty ? '${humiditySoil.last}%' : '0%',
-                    iconPath: 'assets/img/moisture.png',
-                    color: getAdjustedColor(
-                      const Color.fromARGB(255, 167, 247, 208),
-                      humiditySoil.isNotEmpty ? double.tryParse(humiditySoil.last) ?? 0 : 0,
-                      0,
-                      100,
+                    _buildCard(
+                      title: 'Humidité Sol',
+                      value: humiditySoil.isNotEmpty ? '${humiditySoil.last}%' : '0%',
+                      iconPath: 'assets/img/moisture.png',
+                      color: const Color.fromARGB(255, 167, 247, 208),
                     ),
-                  ),
-                  _buildCard(
-                    title: 'NPK',
-                    value: npk.isNotEmpty ? '${npk.last}' : '0',
-                    iconPath: 'assets/img/npk.png',
-                    color: getAdjustedColor(
-                      const Color.fromARGB(255, 233, 165, 245),
-                      npk.isNotEmpty ? double.tryParse(npk.last) ?? 0 : 0,
-                      0,
-                      150,
+                    _buildCard(
+                      title: 'NPK',
+                      value: npk.isNotEmpty ? '${npk.last}' : '0',
+                      iconPath: 'assets/img/npk.png',
+                      color: const Color.fromARGB(255, 233, 165, 245),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              },
             ),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color(0xFF3C6E47),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Paramètres',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
-            label: 'Notifications',
-          ),
-        ],
-      ),
+      
     );
-  }
-
-  // Function to adjust color brightness
-  Color getAdjustedColor(Color baseColor, double value, double minValue, double maxValue) {
-    double normalizedValue = ((value - minValue) / (maxValue - minValue)).clamp(0.0, 1.0);
-    int alpha = (50 + (205 * normalizedValue)).toInt();
-    return baseColor.withAlpha(alpha);
   }
 
   // Card widget to display data in grid
@@ -252,3 +308,25 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+// Page Paramètres
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Paramètres'),
+        backgroundColor: const Color.fromARGB(255, 218, 242, 223),
+      ),
+      body: const Center(
+        child: Text(
+          'Paramètres disponibles ici',
+          style: TextStyle(fontSize: 20),
+        ),
+      ),
+    );
+  }
+}
+
+

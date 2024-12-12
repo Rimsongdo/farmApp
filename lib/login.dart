@@ -68,7 +68,7 @@ class _LoginPageState extends State<LoginPage> {
           // Aller à la page d'accueil
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) =>const MainPage()),
           );
         } else {
           final error = json.decode(response.body)['message'] ?? 'Erreur inconnue';
