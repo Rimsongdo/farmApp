@@ -1,83 +1,110 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tryapp/profilSetting.dart';
 
 class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[200], // Couleur de fond douce
       appBar: AppBar(
         title: Text('Paramètres'),
-        backgroundColor: Colors.green,
+        centerTitle: true,
+         bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1.0), // Hauteur de la bordure
+          child: Container(
+            color: Colors.black, // Couleur de la bordure
+            height: 1.0, // Épaisseur de la bordure
+          ),
+        ),
       ),
-      body: ListView(
+      body: Column(
         children: [
-          // Notifications toggle
-          SwitchListTile(
-            title: Text('Activer les alertes'),
-            subtitle: Text('Recevoir des notifications pour les seuils critiques'),
-            value: true, // Exemple, à connecter avec votre logique
-            onChanged: (bool value) {
-              // Ajouter logique pour activer/désactiver les alertes
-            },
-          ),
-          Divider(),
-
-          // Personnalisation des seuils
-          ListTile(
-            title: Text('Seuils d\'irrigation'),
-            subtitle: Text('Personnaliser les seuils d\'alerte pour l\'humidité du sol'),
-            trailing: Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // Naviguer vers la page de réglage des seuils
-            },
-          ),
-          Divider(),
-
-          // Changer la langue
-          ListTile(
-            title: Text('Langue'),
-            subtitle: Text('Changer la langue de l\'application'),
-            trailing: DropdownButton<String>(
-              value: 'Français',
-              items: ['Français', 'Anglais'].map((String lang) {
-                return DropdownMenuItem(
-                  value: lang,
-                  child: Text(lang),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                // Ajouter logique pour changer la langue
-              },
+          // En-tête stylé
+          Container(
+            padding: EdgeInsets.all(16),
+            width: double.infinity,
+           
+            child: Text(
+              'Gérez vos préférences',
+              style: TextStyle(
+                color: const Color.fromARGB(255, 53, 54, 53),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
-          Divider(),
-
-          // Thème
-          ListTile(
-            title: Text('Thème'),
-            subtitle: Text('Changer le thème de l\'application'),
-            trailing: DropdownButton<String>(
-              value: 'Clair',
-              items: ['Clair', 'Sombre'].map((String theme) {
-                return DropdownMenuItem(
-                  value: theme,
-                  child: Text(theme),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                // Ajouter logique pour changer le thème
-              },
+          // Liste des paramètres
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.person, color: Colors.green),
+                    title: Text('Profil'),
+                    subtitle: Text('Modifier vos informations personnelles'),
+                    trailing: Icon(Icons.arrow_forward_ios, color: Colors.green),
+                    onTap: () {
+                      Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileSettingPage()),
+                    );// Navigation vers la page de profil
+                    },
+                  ),
+                ),
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.devices, color: Colors.green),
+                    title: Text('Dispositifs'),
+                    subtitle: Text('Gérer vos dispositifs'),
+                    trailing: Icon(Icons.arrow_forward_ios, color: Colors.green),
+                    onTap: () {
+                      // Navigation ou action pour changer le thème
+                    },
+                  ),
+                ),
+                
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: ListTile(
+                    leading: Icon(Icons.language, color: Colors.green),
+                    title: Text('Langue'),
+                    subtitle: Text('Changer la langue de l\'application'),
+                    trailing: Icon(Icons.arrow_forward_ios, color: Colors.green),
+                    onTap: () {
+                      // Sélection de la langue
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromARGB(255, 254, 201, 201),
+                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: Icon(Icons.logout),
+                  label: Text('Déconnexion', style: TextStyle(fontSize: 16)),
+                  onPressed: () async{
+                    SharedPreferences prefs = await SharedPreferences.getInstance();
+                    await prefs.clear();
+                    Navigator.pushReplacementNamed(context, '/login');// Action de déconnexion
+                  },
+                ),
+              ],
             ),
-          ),
-          Divider(),
-
-          // Détails du compte
-          ListTile(
-            title: Text('Détails du compte'),
-            subtitle: Text('Voir ou modifier vos informations personnelles'),
-            trailing: Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // Naviguer vers la page de gestion du compte
-            },
           ),
         ],
       ),

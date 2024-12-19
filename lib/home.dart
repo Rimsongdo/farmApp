@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-
 import 'package:tryapp/notification.dart';
+import 'package:tryapp/settings.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -24,8 +24,8 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     _pages = [
       const HomePage(), // Page d'accueil
-      const SettingsScreen(), // Page Paramètres
-       NotificationWidget(), // Page Notifications
+      SettingsPage(), // Page Paramètres
+      NotificationWidget(), // Page Notifications
     ];
   }
 
@@ -54,6 +54,7 @@ class _MainPageState extends State<MainPage> {
             icon: Icon(Icons.notifications),
             label: 'Notifications',
           ),
+         
         ],
       ),
     );
@@ -68,26 +69,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<String> temperatures = [];
+ List<String> temperatures = [];
   List<String> humidityAir = [];
   List<String> humiditySoil = [];
   List<String> npk = [];
+  String? nextIrrigationTime; // Stocke l'heure de la prochaine irrigation
+  bool isButtonVisible = true; // Gère la visibilité du bouton
   String userName = "";
   String userId = "";
+  bool isLoading = false; // Track if data is loading
   late Timer _timer;
 
-  
-
-
-  
   // Load user data from SharedPreferences
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
     String token = prefs.getString('auth_token') ?? '';
     userId = prefs.getString('userId') ?? '';
     userName = prefs.getString('userName') ?? '';
-    String userEmail = prefs.getString('userEmail') ?? '';
     String thingSpeakChannelId = prefs.getString('userThingSpeakChannelId') ?? '';
     String thingSpeakApiKey = prefs.getString('userThingSpeakApiKey') ?? '';
 
@@ -100,6 +98,72 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
+
+Future<void> fetchPrediction(String thingSpeakChannelId, String thingSpeakApiKey, String userId) async {
+  final url = Uri.parse('https://farm-1gno.onrender.com/fetchPrediction'); // Replace with your actual URL
+  final headers = {'Content-Type': 'application/json'};
+
+  final body = json.encode({
+    'thingSpeakChannelId': thingSpeakChannelId,
+    'thingSpeakApiKey': thingSpeakApiKey,
+    'userId': userId,
+  });
+
+  try {
+    final response = await http.post(url, headers: headers, body: body);
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      
+      // Extract prediction value and format it to 2 decimal places
+      double predictionValue = responseData['Prediction'][0].toDouble();
+      String formattedPrediction = predictionValue.toStringAsFixed(2); // Format to 2 decimal places
+
+      setState(() {
+        if(double.parse(formattedPrediction)<=20){
+            nextIrrigationTime = "Irrigation dans 10h";
+        }
+        else{
+          nextIrrigationTime = "Non nécessaire dans 10 heures";
+        }
+         // Store the formatted prediction time
+      });
+    } else {
+      throw Exception('Failed to load prediction');
+    }
+  } catch (error) {
+    print("Error: $error");
+    setState(() {
+      nextIrrigationTime = 'Erreur'; // In case of error
+    });
+  }
+}
+
+Future<void> getNextIrrigation() async {
+  setState(() {
+    isLoading = true; // Start loading when the button is pressed
+  });
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String userId = prefs.getString('userId') ?? '';
+  String thingSpeakChannelId = prefs.getString('userThingSpeakChannelId') ?? '';
+  String thingSpeakApiKey = prefs.getString('userThingSpeakApiKey') ?? '';
+  
+  // Fetch the prediction data
+  await fetchPrediction(thingSpeakChannelId, thingSpeakApiKey, userId);
+
+  setState(() {
+    isLoading = false; // Stop loading after data is fetched
+    isButtonVisible = false; // Hide the button
+  });
+
+  // After displaying the time for 5 seconds, hide it and show the button again
+  await Future.delayed(const Duration(seconds: 5));
+  setState(() {
+    // Clear the next irrigation time
+    isButtonVisible = true; // Show the button again
+  });
+}
 
   // Fetch data from API
   Future<void> fetchData(String thingSpeakChannelId, String thingSpeakApiKey, String userId) async {
@@ -119,17 +183,16 @@ class _HomePageState extends State<HomePage> {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> data = json.decode(response.body);
-
         List<String> tempList = [];
         List<String> humidityAirList = [];
         List<String> humiditySoilList = [];
         List<String> npkList = [];
 
         for (var feed in data['feeds']) {
-          tempList.add(feed['field1'] ?? '0');
-          humidityAirList.add(feed['field2'] ?? '0');
-          humiditySoilList.add(feed['field3'] ?? '0');
-          npkList.add(feed['field4'] ?? '0');
+          tempList.add(feed['field1'] ?? '...');
+          humidityAirList.add(feed['field2'] ?? '...');
+          humiditySoilList.add(feed['field3'] ?? '...');
+          npkList.add(feed['field4'] ?? '...');
         }
 
         setState(() {
@@ -148,16 +211,8 @@ class _HomePageState extends State<HomePage> {
         humidityAir = ['Erreur'];
         humiditySoil = ['Erreur'];
         npk = ['Erreur'];
-        
       });
     }
-  }
-
-  // Log out function
-  Future<void> logOut() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
@@ -175,104 +230,151 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Change the background color here
+      backgroundColor: Colors.white, // Set your desired background color
+
       appBar: AppBar(
-        title: IconButton(
-    icon: const Icon(Icons.account_circle), // Icône du profil
-    onPressed: () {
-      // Ajoutez la logique pour naviguer vers la page de profil ou autre action ici
-    },
-  ),
-        backgroundColor: const Color.fromARGB(255, 218, 242, 223),
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.account_circle), // Profile icon
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/profil');// Navigate to the profile page
+               
+              },
+            ),
+            const SizedBox(width: 10),
+            
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout),
             onPressed: logOut,
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1.0), // Hauteur de la bordure
+          child: Container(
+            color: Colors.black, // Couleur de la bordure
+            height: 1.0, // Épaisseur de la bordure
+          ),
+        ),
       ),
-      body: SingleChildScrollView(  // Make the body scrollable
-        padding: const EdgeInsets.all(16.0),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 15),
-            const Text(
-              'Prochaine Irrigation',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 51, 135, 69),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,  // Make the container responsive
-              height: 80,
-              child: const Card(
-                elevation: 15,
-                color: Color.fromARGB(255, 223, 239, 245),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Text('Prévue pour: ', style: TextStyle(fontSize: 20)),
-                    Text("7h00", style: TextStyle(fontSize: 20)),
-                  ],
+            
+           
+            
+            const SizedBox(height: 30),
+            // Section Données en temps réel
+           const Center(
+                child:  Text(
+                  'Données en temps réel',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-            const Text(
-              'Données en temps réel',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF3C6E47),
-              ),
-            ),
+
             const SizedBox(height: 20),
-            // Adjust GridView layout based on screen size
+            // Grille de données
             Builder(
               builder: (context) {
                 double width = MediaQuery.of(context).size.width;
-                int crossAxisCount = width > 600 ? 4 : 2; // More columns for larger screens
+                int crossAxisCount = width > 600 ? 4 : 2;
                 return GridView.count(
-                  shrinkWrap: true, // Makes GridView responsive
-                  physics: NeverScrollableScrollPhysics(), // Prevents nested scrolling
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
                   crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
                   children: [
                     _buildCard(
                       title: 'Température',
-                      value: temperatures.isNotEmpty ? '${temperatures.last}°C' : '0°C',
+                      value: temperatures.isNotEmpty ? '${temperatures.last}°C' : 'chargement...',
                       iconPath: 'assets/img/temp.png',
-                      color: const Color.fromARGB(255, 250, 215, 169),
+                      color: Colors.orange[100]!,
                     ),
                     _buildCard(
                       title: 'Humidité Air',
-                      value: humidityAir.isNotEmpty ? '${humidityAir.last}%' : '0%',
+                      value: humidityAir.isNotEmpty ? '${humidityAir.last}%' : 'chargement...',
                       iconPath: 'assets/img/humidite.png',
-                      color: const Color.fromARGB(255, 165, 194, 245),
+                      color: Colors.blue[100]!,
                     ),
                     _buildCard(
                       title: 'Humidité Sol',
-                      value: humiditySoil.isNotEmpty ? '${humiditySoil.last}%' : '0%',
+                      value: humiditySoil.isNotEmpty ? '${humiditySoil.last}%' : 'chargement...',
                       iconPath: 'assets/img/moisture.png',
-                      color: const Color.fromARGB(255, 167, 247, 208),
+                      color: Colors.teal[100]!,
                     ),
                     _buildCard(
                       title: 'NPK',
-                      value: npk.isNotEmpty ? '${npk.last}' : '0',
+                      value: npk.isNotEmpty ? '${npk.last}' : 'chargement...',
                       iconPath: 'assets/img/npk.png',
-                      color: const Color.fromARGB(255, 233, 165, 245),
+                      color: Colors.purple[100]!,
                     ),
                   ],
                 );
               },
             ),
+            const SizedBox(height: 30),
+
+const SizedBox(height: 20),
+Center(
+              child: AnimatedSwitcher(
+  duration: const Duration(milliseconds: 800),
+  switchInCurve: Curves.easeInOut,
+  switchOutCurve: Curves.easeInOut,
+  transitionBuilder: (child, animation) {
+    return ScaleTransition(
+      scale: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: child,
+      ),
+    );
+  },
+  child: isLoading
+      ? Center( // Show loading spinner when data is being fetched
+          child: CircularProgressIndicator(
+            color: Colors.green,
+          ),
+        )
+      : isButtonVisible
+          ? ElevatedButton(
+              onPressed: getNextIrrigation,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Afficher la prochaine irrigation',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
+            )
+          : Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$nextIrrigationTime',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            ),
+),
+
+            ),
           ],
         ),
       ),
-      
     );
   }
 
@@ -286,47 +388,33 @@ class _HomePageState extends State<HomePage> {
     return Card(
       elevation: 5,
       color: color,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(iconPath, width: 60),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(iconPath, width: 50),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-}
-// Page Paramètres
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Paramètres'),
-        backgroundColor: const Color.fromARGB(255, 218, 242, 223),
-      ),
-      body: const Center(
-        child: Text(
-          'Paramètres disponibles ici',
-          style: TextStyle(fontSize: 20),
+            const SizedBox(height: 10),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
+  Future<void> logOut() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+}
 

@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:tryapp/loading.dart';
 import 'package:tryapp/login.dart';
 import 'package:tryapp/home.dart';
+import 'package:tryapp/profil.dart';
 
 
 // Configuration des notifications locales
@@ -77,8 +78,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => LoginPage(),
         '/home': (context) => const MainPage(),
+        '/profil': (context) => const ProfilePage(),
         
-        //'/notifications': (context) => const HomePage(),
       },
     );
   }

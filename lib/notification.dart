@@ -12,6 +12,7 @@ class NotificationWidget extends StatefulWidget {
 class _NotificationWidgetState extends State<NotificationWidget> {
   List<dynamic> notifications = [];
   String userId = "";
+  bool isLoading = true; // Ajoutez une variable pour suivre l'état de chargement
 
   @override
   void initState() {
@@ -35,8 +36,12 @@ class _NotificationWidgetState extends State<NotificationWidget> {
     if (response.statusCode == 200) {
       setState(() {
         notifications = json.decode(response.body)['notifications'];
+        isLoading = false; // Une fois les notifications récupérées, on change l'état de chargement
       });
     } else {
+      setState(() {
+        isLoading = false; // Si l'API retourne une erreur, on arrête aussi le chargement
+      });
       print('Erreur lors de la récupération des notifications');
     }
   }
@@ -54,53 +59,65 @@ class _NotificationWidgetState extends State<NotificationWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[200],
       appBar: AppBar(
+        
         title: Text(
           'Notifications',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.green[700],
-        elevation: 5,
+        centerTitle: true,
+         bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1.0), // Hauteur de la bordure
+          child: Container(
+            color: Colors.black, // Couleur de la bordure
+            height: 1.0, // Épaisseur de la bordure
+          ),
+        ),
       ),
-      body: notifications.isEmpty
+      body: isLoading
           ? Center(
-              child: Text(
-                'Aucune notification.',
-                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-              ),
+              child: CircularProgressIndicator(), // Affiche le loader pendant le chargement
             )
-          : ListView.builder(
-              itemCount: notifications.length,
-              itemBuilder: (context, index) {
-                var notification = notifications.reversed.toList()[index]; // Inversez la liste ici
-                return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+          : notifications.isEmpty
+              ? Center(
+                  child: Text(
+                    'Aucune notification.',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                   ),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.all(16),
-                    title: Text(
-                      notification['message'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
+                )
+              : ListView.builder(
+                  itemCount: notifications.length,
+                  itemBuilder: (context, index) {
+                    var notification = notifications.reversed.toList()[index]; // Inversez la liste ici
+                    return Card(
+                      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                    ),
-                    subtitle: Text(
-                      _formatDate(notification['date']), // Formatez la date ici
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
-                    trailing: Icon(
-                      Icons.notifications,
-                      color: Colors.orange[700],
-                    ),
-                  ),
-                );
-              },
-            ),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.all(16),
+                        title: Text(
+                          notification['message'],
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _formatDate(notification['date']), // Formatez la date ici
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                        trailing: Icon(
+                          Icons.notifications,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
