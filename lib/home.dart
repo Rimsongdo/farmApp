@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
   String userId = "";
   bool isLoading = false; // Track if data is loading
   late Timer _timer;
-
+  
   // Load user data from SharedPreferences
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -100,13 +100,13 @@ class _HomePageState extends State<HomePage> {
   }
 
 Future<void> fetchPrediction(String thingSpeakChannelId, String thingSpeakApiKey, String userId) async {
-  final url = Uri.parse('https://farm-1gno.onrender.com/fetchPrediction'); // Replace with your actual URL
+  final url = Uri.parse('https://farmpred-mt5y.onrender.com/predict'); // Replace with your actual URL
   final headers = {'Content-Type': 'application/json'};
 
   final body = json.encode({
-    'thingSpeakChannelId': thingSpeakChannelId,
-    'thingSpeakApiKey': thingSpeakApiKey,
-    'userId': userId,
+    "soil_humidity_2":double.parse(humiditySoil.last),
+    "air_temperature":double.parse(temperatures.last),
+    "air_humidity":double.parse(humidityAir.last)
   });
 
   try {
@@ -116,15 +116,16 @@ Future<void> fetchPrediction(String thingSpeakChannelId, String thingSpeakApiKey
       final Map<String, dynamic> responseData = json.decode(response.body);
       
       // Extract prediction value and format it to 2 decimal places
-      double predictionValue = responseData['Prediction'][0].toDouble();
+      int predictionValue = responseData['prediction'].toInt();
       String formattedPrediction = predictionValue.toStringAsFixed(2); // Format to 2 decimal places
-
+      int hours=predictionValue ~/ 60;
+      int minutes= predictionValue % 60;
       setState(() {
-        if(double.parse(formattedPrediction)<=20){
-            nextIrrigationTime = "Irrigation dans 10h";
+        if(double.parse(formattedPrediction)==0.0){
+            nextIrrigationTime = "Irrigation immédiate";
         }
         else{
-          nextIrrigationTime = "Non nécessaire dans 10 heures";
+          nextIrrigationTime = "Irrigation dans $hours heures et $minutes munites.";
         }
          // Store the formatted prediction time
       });
@@ -134,7 +135,7 @@ Future<void> fetchPrediction(String thingSpeakChannelId, String thingSpeakApiKey
   } catch (error) {
     print("Error: $error");
     setState(() {
-      nextIrrigationTime = 'Erreur'; // In case of error
+      nextIrrigationTime = 'Non disponible'; // In case of error
     });
   }
 }
@@ -253,13 +254,7 @@ Future<void> getNextIrrigation() async {
             onPressed: logOut,
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1.0), // Hauteur de la bordure
-          child: Container(
-            color: Colors.black, // Couleur de la bordure
-            height: 1.0, // Épaisseur de la bordure
-          ),
-        ),
+       
       ),
 
       body: SingleChildScrollView(
@@ -324,54 +319,84 @@ Future<void> getNextIrrigation() async {
 
 const SizedBox(height: 20),
 Center(
-              child: AnimatedSwitcher(
-  duration: const Duration(milliseconds: 800),
-  switchInCurve: Curves.easeInOut,
-  switchOutCurve: Curves.easeInOut,
-  transitionBuilder: (child, animation) {
-    return ScaleTransition(
-      scale: animation,
-      child: FadeTransition(
-        opacity: animation,
-        child: child,
-      ),
-    );
-  },
-  child: isLoading
-      ? Center( // Show loading spinner when data is being fetched
-          child: CircularProgressIndicator(
-            color: Colors.green,
+  child: SizedBox(
+    height: 150, // Hauteur fixe pour éviter le déplacement
+    child: AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        return ScaleTransition(
+          scale: animation,
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
           ),
-        )
-      : isButtonVisible
-          ? ElevatedButton(
-              onPressed: getNextIrrigation,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Afficher la prochaine irrigation',
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
+        );
+      },
+      child: isLoading
+          ? const CircularProgressIndicator(
+              color: Colors.green,
             )
-          : Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '$nextIrrigationTime',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green),
-              ),
-            ),
+          : isButtonVisible
+              ? ElevatedButton(
+                  onPressed: getNextIrrigation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 18, horizontal: 36),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    elevation: 10,
+                    shadowColor: Colors.greenAccent.withOpacity(0.6),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  child: const Text(
+                    'Afficher la prochaine irrigation',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.greenAccent.withOpacity(0.4),
+                        spreadRadius: 2,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 30,
+                        color: Colors.green,
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        '$nextIrrigationTime',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+    ),
+  ),
 ),
 
-            ),
           ],
         ),
       ),
