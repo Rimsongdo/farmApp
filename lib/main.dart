@@ -23,8 +23,8 @@ void main() async {
 
   // Gère les messages en arrière-plan
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // Initialisation des notifications locales
+  
+  
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings = InitializationSettings(
@@ -41,7 +41,7 @@ void main() async {
   // Get the FCM token for debugging or storing
   String? token = await FirebaseMessaging.instance.getToken();
   print("FCM Token: $token");
-
+   
   runApp(const MyApp());
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tryapp/home.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -40,14 +41,41 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil Utilisateur'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logOut,
-          ),
-        ],
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: Size(MediaQuery.of(context).size.width, 120),
+              painter: WavyAppBarPainter(),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 30),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const MainPage()),
+                        );
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  const Spacer(),
+                  
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: logOut,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -56,26 +84,36 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             const Text(
               'Informations de l\'utilisateur',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
             ),
             const SizedBox(height: 20),
             _buildProfileInfo('Nom', userName),
             _buildProfileInfo('ID Utilisateur', userId),
             _buildProfileInfo('Email', userEmail),
-            _buildProfileInfo('Canal ThingSpeak', userThingSpeakChannelId),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: logOut,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, // Couleur du bouton de déconnexion
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Center(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 254, 201, 201),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-              ),
-              child: const Text(
-                'Se déconnecter',
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                icon: const Icon(Icons.logout, color: Colors.red),
+                label: const Text(
+                  'Déconnexion',
+                  style: TextStyle(fontSize: 16, color: Colors.red),
+                ),
+                onPressed: () async {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
               ),
             ),
           ],
@@ -84,23 +122,40 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Widget pour afficher les informations de l'utilisateur
-  Widget _buildProfileInfo(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+ Widget _buildProfileInfo(String label, String value) {
+  return Card(
+    elevation: 5,
+    color: Colors.green.shade50,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             '$label :',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16),
+          const SizedBox(width: 10), // Add some spacing between label and value
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis, // Truncate with ellipsis if text is too long
+              maxLines: 1, // Limit to one line
+            ),
           ),
         ],
       ),
-    );
-  }
-}
+    ),
+  );
+}}

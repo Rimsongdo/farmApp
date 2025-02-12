@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart'; // Importez le package intl
+import 'package:intl/intl.dart';
+import 'package:tryapp/home.dart'; // Importez le package intl
 
 class NotificationWidget extends StatefulWidget {
   @override
@@ -59,31 +60,45 @@ class _NotificationWidgetState extends State<NotificationWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
-      appBar: AppBar(
-        
-        title: Text(
-          'Notifications',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1.0), // Hauteur de la bordure
-          child: Container(
-            color: Colors.black, // Couleur de la bordure
-            height: 1.0, // Épaisseur de la bordure
-          ),
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: Size(MediaQuery.of(context).size.width, 120),
+              painter: WavyAppBarPainter(),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 30),
+              child: Row(
+                children: [
+                  
+                  const SizedBox(width: 10),
+                  const Spacer(),
+                  
+                
+                  const Spacer(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: isLoading
           ? Center(
-              child: CircularProgressIndicator(), // Affiche le loader pendant le chargement
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+              ), // Affiche le loader pendant le chargement
             )
           : notifications.isEmpty
               ? Center(
                   child: Text(
                     'Aucune notification.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -96,6 +111,7 @@ class _NotificationWidgetState extends State<NotificationWidget> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
+                      color: Colors.green.shade50,
                       child: ListTile(
                         contentPadding: EdgeInsets.all(16),
                         title: Text(
@@ -108,11 +124,14 @@ class _NotificationWidgetState extends State<NotificationWidget> {
                         ),
                         subtitle: Text(
                           _formatDate(notification['date']), // Formatez la date ici
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                         trailing: Icon(
                           Icons.notifications,
-                          color: Colors.orange[700],
+                          color: Colors.green,
                         ),
                       ),
                     );

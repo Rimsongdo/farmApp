@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tryapp/home.dart';
 
 class ProfileSettingPage extends StatefulWidget {
   const ProfileSettingPage({Key? key}) : super(key: key);
@@ -21,6 +24,9 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
+  // Clé pour le formulaire
+  final _formKey = GlobalKey<FormState>();
+
   // Charge les données de l'utilisateur depuis SharedPreferences
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -40,21 +46,42 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
 
   // Sauvegarder les modifications dans SharedPreferences
   Future<void> saveUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('userName', nameController.text);
-    await prefs.setString('userEmail', emailController.text);
-    await prefs.setString('userPassword', passwordController.text);
+    if (_formKey.currentState!.validate()) {
+      // Si le formulaire est valide, enregistrer les données
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userName', nameController.text);
+      await prefs.setString('userEmail', emailController.text);
+      await prefs.setString('userPassword', passwordController.text);
 
-    setState(() {
-      userName = nameController.text;
-      userEmail = emailController.text;
-      userPassword = passwordController.text;
-    });
+      setState(() {
+        userName = nameController.text;
+        userEmail = emailController.text;
+        userPassword = passwordController.text;
+      });
 
-    // Affichage d'un message de confirmation
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Modifications enregistrées avec succès!')),
-    );
+      final url = Uri.parse('https://farm-1gno.onrender.com/api/userServices/updateUser');
+      final headers = {'Content-Type': 'application/json'};
+
+      final body = json.encode({
+        "userId": userId,
+        "name": userName,
+        "email": userEmail,
+        "password": userPassword,
+      });
+
+      try {
+        final response = await http.put(url, headers: headers, body: body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Modifications enregistrées avec succès!')),
+        );
+      } catch (errors) {
+        print(errors);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de l\'enregistrement des modifications.')),
+        );
+      }
+    }
   }
 
   // Déconnexion de l'utilisateur
@@ -73,45 +100,98 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil Utilisateur'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logOut,
-          ),
-        ],
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: Stack(
+          children: [
+            CustomPaint(
+              size: Size(MediaQuery.of(context).size.width, 120),
+              painter: WavyAppBarPainter(),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 30),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  const Spacer(),
+                  
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: logOut,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Informations de l\'utilisateur',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
-              ),
-              const SizedBox(height: 20),
-              _buildProfileCard('Nom', userName, nameController),
-              _buildProfileCard('Email', userEmail, emailController),
-              _buildProfileCard('Mot de Passe', userPassword, passwordController, obscureText: true),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: saveUserData,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green, // Couleur du bouton
-                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Informations de l\'utilisateur',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
                 ),
-                child: const Text(
-                  'Enregistrer les modifications',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                const SizedBox(height: 20),
+                _buildProfileCard('Nom', userName, nameController, validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer votre nom';
+                  }
+                  return null;
+                }),
+                _buildProfileCard('Email', userEmail, emailController, validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer votre email';
+                  }
+                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    return 'Veuillez entrer un email valide';
+                  }
+                  return null;
+                }),
+                _buildProfileCard('Mot de Passe', userPassword, passwordController, obscureText: true, validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer votre mot de passe';
+                  }
+                  if (value.length < 6) {
+                    return 'Le mot de passe doit contenir au moins 6 caractères';
+                  }
+                  return null;
+                }),
+                const SizedBox(height: 30),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: saveUserData,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Enregistrer les modifications',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -119,11 +199,19 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
   }
 
   // Widget pour afficher et modifier les informations de l'utilisateur
-  Widget _buildProfileCard(String label, String value, TextEditingController controller, {bool obscureText = false}) {
+  Widget _buildProfileCard(
+    String label,
+    String value,
+    TextEditingController controller, {
+    bool obscureText = false,
+    String? Function(String?)? validator,
+  }) {
     return Card(
       elevation: 5,
-      color: Colors.blueGrey[50],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.green.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -131,10 +219,14 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 10),
-            TextField(
+            TextFormField(
               controller: controller,
               obscureText: obscureText,
               decoration: InputDecoration(
@@ -143,7 +235,16 @@ class _ProfileSettingPageState extends State<ProfileSettingPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                prefixIcon: Icon(
+                  label == 'Nom'
+                      ? Icons.person
+                      : label == 'Email'
+                          ? Icons.email
+                          : Icons.lock,
+                  color: Colors.green,
+                ),
               ),
+              validator: validator,
             ),
           ],
         ),
