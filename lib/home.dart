@@ -1,14 +1,14 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:math';
-import 'package:lottie/lottie.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:tryapp/deviceInfos.dart';
+import 'package:tryapp/doctor.dart';
+import 'package:tryapp/irrigation.dart';
 import 'package:tryapp/notification.dart';
 import 'package:tryapp/settings.dart';
 
@@ -165,10 +165,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               final deviceObj = Device(
                 id: device['id'] ?? '',
                 name: device['name'] ?? '',
-                temperature: 'N/A',
-                humidityAir: 'N/A',
-                humiditySoil: 'N/A',
-                npk: 'N/A',
+                temperature: '...',
+                humidityAir: '...',
+                humiditySoil: '...',
+                npk: '...',
                 thingSpeakChannelId: device['thingSpeakChannelId'] ?? '',
                 thingSpeakApiKey: device['thingSpeakApiKey'] ?? '',
                 nextIrrigation: device['nextIrrigation'] ?? 'N/A',
@@ -221,14 +221,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       final updatedDevice = Device(
         id: device.id,
         name: device.name,
-        temperature: feed['field1'] ?? 'N/A',
-        humidityAir: feed['field2'] ?? 'N/A',
-        humiditySoil: feed['field3'] ?? 'N/A',
-        npk: feed['field4'] ?? 'N/A',
+        temperature: feed['field1'] ?? '...',
+        humidityAir: feed['field2'] ?? '...',
+        humiditySoil: feed['field3'] ?? '...',
+        npk: feed['field4'] ?? '...',
         thingSpeakChannelId: device.thingSpeakChannelId,
         thingSpeakApiKey: device.thingSpeakApiKey,
-        nextIrrigation: feed['field5'] ?? 'N/A', // Assuming field5 contains nextIrrigation
-        batteryLevel: feed['field6'] ?? 'N/A', // Assuming field6 contains batteryLevel
+        nextIrrigation: feed['field5'] ?? '...', // Assuming field5 contains nextIrrigation
+        batteryLevel: feed['field6'] ?? '...', // Assuming field6 contains batteryLevel
         image: device.image, // Pass the image field
       );
 
@@ -304,22 +304,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (showAnimation)
-                  Center(
-                    child: Lottie.asset(
-                      'assets/animations/farmingAnimation.json',
-                      width: 200,
-                      height: 200,
-                    ),
-                  ),
+                
                 const SizedBox(height: 30),
-                const Center(
-                  child: Text(
-                    "Données en temps réel",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 Column(
                   children: [
                     CarouselSlider(
@@ -345,6 +331,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     const SizedBox(height: 20),
                     
                     const SizedBox(height: 30),
+                    Center(
+                child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 41, 156, 45),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+               
+                label: const Text(
+                  'Plant Doctor 🌱',
+                  style: TextStyle(fontSize: 16, color: Color.fromARGB(255, 255, 255, 255)),
+                ),
+                onPressed: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) =>  TFLiteIntegrationScreen()),
+                        );
+                    },
+              ),             ),
                   ],
                 ),
               ],
@@ -496,13 +503,11 @@ class _DeviceCardState extends State<DeviceCard> {
                     _buildDataRow(Icons.thermostat, 'Température', '${widget.device.temperature}°C'),
                     _buildDataRow(Icons.opacity, 'Humidité Air', '${widget.device.humidityAir}%'),
                     _buildDataRow(Icons.grass, 'Humidité Sol', '${widget.device.humiditySoil}%'),
-                    _buildDataRow(Icons.science, 'NPK', widget.device.npk),
+                    _buildDataRow(Icons.water_drop, 'Pluie', widget.device.npk),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Irrigation Button or Prediction Display
               Center(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
@@ -512,15 +517,12 @@ class _DeviceCardState extends State<DeviceCard> {
                         )
                       : nextIrrigationTime == null
                           ? ElevatedButton(
-                              onPressed: () async {
-                                setState(() {
-                                  isLoading = true;
-                                });
-                                await fetchPrediction();
-                                setState(() {
-                                  isLoading = false;
-                                });
-                              },
+                              onPressed: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) =>  IrrigationScreen()),
+                        );
+                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
@@ -534,6 +536,7 @@ class _DeviceCardState extends State<DeviceCard> {
                                 'Prochaine irrigation',
                                 style: TextStyle(color: Colors.white, fontSize: 16),
                               ),
+                              
                             )
                           : Container(
                               padding: const EdgeInsets.all(15),
@@ -569,39 +572,49 @@ class _DeviceCardState extends State<DeviceCard> {
   }
 
   Widget _buildDataRow(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          // Gradient Icon
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.green.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Row(
+      children: [
+        // Gradient Icon
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade400, Colors.green.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
-            ),
+            borderRadius: BorderRadius.circular(10),
           ),
-          const SizedBox(width: 10),
-          // Title
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black54,
-            ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: 24,
           ),
-          const Spacer(),
-          // Value
+        ),
+        const SizedBox(width: 10),
+        // Title
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black54,
+          ),
+        ),
+        const Spacer(),
+        // Value or Loading Spinner
+        if (value == '...' || value.isEmpty||value == '...%'||value == '...°C')
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            ),
+          )
+        else
           Text(
             value,
             style: const TextStyle(
@@ -610,10 +623,10 @@ class _DeviceCardState extends State<DeviceCard> {
               color: Colors.black87,
             ),
           ),
-        ],
-      ),
-    );
-  }
+      ],
+    ),
+  );
+}
 }
 class Device {
   final String id;

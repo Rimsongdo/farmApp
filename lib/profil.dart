@@ -92,7 +92,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 20),
             _buildProfileInfo('Nom', userName),
-            _buildProfileInfo('ID Utilisateur', userId),
             _buildProfileInfo('Email', userEmail),
             const SizedBox(height: 30),
             Center(

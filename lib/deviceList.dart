@@ -103,13 +103,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
                             color: Colors.black87,
                           ),
                         ),
-                        subtitle: Text(
-                          'ID: ${device['id'] ?? 'N/A'}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+                        
                         onTap: () {
                           print('Selected Device: ${devices[index]}'); // Debugging
                           Navigator.push(
